@@ -12,7 +12,7 @@ const Login = () => {
     // console.log('Google Login Success Response:', response); // Debugging
     console.log('Token:', response.credential); // Debugging
     try {
-      const res = await axios.post('http://localhost:8000/api/google-login/', {
+      const res = await axios.post(`${apiUrl}/google-login/`, {
         token: response.credential,
       });
       localStorage.setItem('token', res.data.token); // Save the token

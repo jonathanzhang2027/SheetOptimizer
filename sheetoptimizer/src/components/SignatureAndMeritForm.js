@@ -15,6 +15,7 @@ const SignatureAndMeritForm = () => {
   
 
   const names = process.env.REACT_APP_NAMES ? process.env.REACT_APP_NAMES.split(',') : [];
+  const apiUrl = process.env.REACT_APP_API_URL;
 
   // Get token from localStorage
   const getAuthHeader = () => {
@@ -26,7 +27,7 @@ const SignatureAndMeritForm = () => {
     e.preventDefault();
     try {
       await axios.post(
-        'http://localhost:8000/api/signature/',
+        `${apiUrl}/signature/`,
         signatureForm,
         { headers: getAuthHeader() }
       );
@@ -41,7 +42,7 @@ const SignatureAndMeritForm = () => {
     e.preventDefault();
     try {
       await axios.post(
-        'http://localhost:8000/api/merit-sheet/',
+        `${apiUrl}/merit-sheet/`,
         meritForm,
         { headers: getAuthHeader() }
       );
