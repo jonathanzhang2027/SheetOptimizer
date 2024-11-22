@@ -33,6 +33,10 @@ credentials = service_account.Credentials.from_service_account_info(service_acco
 ALLOWED_EMAILS = config('ALLOWED_EMAILS', cast=lambda v: [s.strip() for s in v.split(',')])
 
 class GoogleLoginView(APIView):
+    def get(self, request):
+        # Simple response to confirm the backend is working
+        return Response("signatures")
+    
     def post(self, request):
         token = request.data.get('token')
 
@@ -160,6 +164,9 @@ class SignatureView(APIView):
 
 from googleapiclient.discovery import build
 class MeritSheetView(APIView):
+    def get(self, request):
+        # Simple response to confirm the backend is working
+        return Response("merit sheet")
     def post(self, request):
         serializer = MeritSheetSerializer(data=request.data)
         # print(1)
