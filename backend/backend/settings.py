@@ -63,6 +63,12 @@ CORS_ALLOWED_ORIGINS = [
     'https://sheet-optimizer-19.vercel.app',  # Add your frontend URL here
 ]
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'Content-Type',
+    'Authorization',
+    'X-CSRFToken',
+]
+
 
 
 ROOT_URLCONF = "backend.urls"
