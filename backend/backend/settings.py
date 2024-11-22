@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-&4smzmi@^=htqv^iwu^2=9hm20yo_)p*2w25-zbntat^6a+87*"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = []
 
@@ -62,6 +62,7 @@ MIDDLEWARE.insert(0, 'corsheaders.middleware.CorsMiddleware')
 CORS_ALLOWED_ORIGINS = [
     'https://sheet-optimizer-19.vercel.app',  # Add your frontend URL here
 ]
+CORS_ALLOW_CREDENTIALS = True
 
 
 ROOT_URLCONF = "backend.urls"
@@ -147,7 +148,7 @@ LOGOUT_REDIRECT_URL = '/'
 
 GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = config('GOOGLE_CLIENT_SECRET')
-GOOGLE_REDIRECT_URI = "https://sheet-optimizer-2bed.vercel.app/api/oauth2callback/"
+GOOGLE_REDIRECT_URI = "https://sheet-optimizer.vercel.app/api/oauth2callback/"
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # REST_FRAMEWORK = {
