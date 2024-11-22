@@ -10,7 +10,7 @@ const Login = () => {
   const handleLoginSuccess = async (response) => {
     console.log('Google Login Success:', response);
     // console.log('Google Login Success Response:', response); // Debugging
-    console.log('Token:', response.credential); // Debugging
+    // console.log('Token:', response.credential); // Debugging
     try {
       const res = await axios.post(`${apiUrl}/google-login/`, {
         token: response.credential,

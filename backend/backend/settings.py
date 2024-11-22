@@ -138,7 +138,7 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
-        'SCOPE': ['profile', 'email'],
+        'SCOPE': ['profile', 'email', 'https://www.googleapis.com/auth/drive'],
         'AUTH_PARAMS': {'access_type': 'online'},
     }
 }
@@ -147,7 +147,7 @@ LOGOUT_REDIRECT_URL = '/'
 
 GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = config('GOOGLE_CLIENT_SECRET')
-GOOGLE_REDIRECT_URI = "https://sheet-optimizer-19.vercel.app/api/oauth2callback/"
+GOOGLE_REDIRECT_URI = "https://sheet-optimizer-2bed.vercel.app/api/oauth2callback/"
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # REST_FRAMEWORK = {
