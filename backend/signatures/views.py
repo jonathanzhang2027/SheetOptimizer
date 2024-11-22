@@ -16,9 +16,13 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapi
 SERVICE_ACCOUNT_FILE = os.path.join(settings.BASE_DIR, 'credentials', 'service_account.json')
 
 GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID')
-EXCEL_FILE_NAME = config('EXCEL_FILE_NAME')
+SIGNATURE_FILE_NAME = config('SIGNATURE_FILE_NAME')
+MERIT_FILE_NAME = config('MERIT_FILE_NAME')
 
 
+
+# List of allowed emails
+ALLOWED_EMAILS = config('ALLOWED_EMAILS', cast=lambda v: [s.strip() for s in v.split(',')])
 
 class GoogleLoginView(APIView):
     def post(self, request):
@@ -33,17 +37,21 @@ class GoogleLoginView(APIView):
                 idinfo = id_token.verify_oauth2_token(token, requests.Request(), GOOGLE_CLIENT_ID)
             except ValueError as e:
                 raise AuthenticationFailed('Invalid token.')
-            idinfo = id_token.verify_oauth2_token(token, requests.Request(), GOOGLE_CLIENT_ID)
 
             # Get user info
             email = idinfo['email']
             name = idinfo['name']
+
+            # Check if the email is in the list of allowed emails
+            if email not in ALLOWED_EMAILS:
+                raise AuthenticationFailed('Unauthorized email.')
 
             # Check if user exists, otherwise create a new one
             user, _ = User.objects.get_or_create(username=email, defaults={"first_name": name})
 
             # Generate a session or token for the authenticated user
             return Response({"message": "Login successful", "email": email})
+
         except ValueError:
             raise AuthenticationFailed('Invalid token.')
 from gspread.exceptions import WorksheetNotFound
@@ -53,20 +61,28 @@ from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
 class SignatureView(APIView):
     def post(self, request):
+        
         serializer = SignatureSerializer(data=request.data)
+        # print(1)
         if serializer.is_valid():
+            # print(1)
             serializer.save()
-
+            # print(2)
             try:
                 # Load credentials and initialize clients
+                # print(1)
                 credentials = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+                # print(1)
                 drive_service = build('drive', 'v3', credentials=credentials)
+                # print(1)
                 gspread_client = gspread.authorize(credentials)
                 # print(1)
                 # Step 1: Find the `.xlsx` file in Google Drive
-                file_name = EXCEL_FILE_NAME  # Replace with the name of your file in Google Drive
+                # print(2)
+                file_name = SIGNATURE_FILE_NAME  # Replace with the name of your file in Google Drive
                 # print(2)
                 query = f"name = '{file_name}' and mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed = false"
+                print(1)
                 results = drive_service.files().list(q=query, fields="files(id, name)").execute()
                 files = results.get('files', [])
                 print(file_name)
@@ -74,7 +90,7 @@ class SignatureView(APIView):
                 
                 if not files:
                     return Response({"error": f"No file named '{file_name}' found in Google Drive."}, status=404)
-                print(2)
+                # print(2)
                 file_id = files[0]['id']
                 print(f"Found file: {files[0]['name']} (ID: {file_id})")
 
@@ -88,7 +104,7 @@ class SignatureView(APIView):
                 spreadsheet = gspread_client.open_by_key(spreadsheet_id)
                 sheet = spreadsheet.sheet1  # Open the first worksheet
                 rows = sheet.get_all_values()
-                print(1)
+                # print(1)
                 # Find the Active Name and Update the Signature
                 active_name = serializer.data['name']
                 new_signature = serializer.data['signature']
@@ -122,7 +138,7 @@ class SignatureView(APIView):
 
                 # Step 5: Upload the .xlsx file back to Google Drive
                 print("Uploading exported .xlsx back to Google Drive...")
-                upload_metadata = {'name': {EXCEL_FILE_NAME}}  # Keep the same name
+                upload_metadata = {'name': {SIGNATURE_FILE_NAME}}  # Keep the same name
                 media = MediaIoBaseUpload(file_stream, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
                 updated_file = drive_service.files().update(fileId=file_id, media_body=media, fields='id, name').execute()
                 print(f"Updated file in Google Drive with ID: {updated_file['id']}")
@@ -138,26 +154,100 @@ class SignatureView(APIView):
 class MeritSheetView(APIView):
     def post(self, request):
         serializer = MeritSheetSerializer(data=request.data)
+        # print(1)
         if serializer.is_valid():
             serializer.save()
+            # print(1)
 
-            # Load credentials from the service account file
-            credentials = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+            try:
+                # Load credentials and initialize clients
+                credentials = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+                drive_service = build('drive', 'v3', credentials=credentials)
+                gspread_client = gspread.authorize(credentials)
 
-            # Save to Google Sheets
-            client = gspread.authorize(credentials)
-            sheet = client.open("Your Google Sheet Name").worksheet("MeritSheet")
-            sheet.append_row([
-                serializer.data['date'],
-                serializer.data['active_name'],
-                serializer.data['professional'],
-                serializer.data['brotherhood'],
-                serializer.data['initial'],
-                serializer.data['points']
-            ])
+                # Step 1: Find the `.xlsx` file in Google Drive
+                file_name = MERIT_FILE_NAME  # Replace with the name of your file in Google Drive
+                query = f"name = '{file_name}' and mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed = false"
+                results = drive_service.files().list(q=query, fields="files(id, name)").execute()
+                files = results.get('files', [])
 
-            return Response({"message": "Merit sheet saved successfully"})
+                if not files:
+                    return Response({"error": f"No file named '{file_name}' found in Google Drive."}, status=404)
+
+                file_id = files[0]['id']
+                print(f"Found file: {files[0]['name']} (ID: {file_id})")
+
+                # Step 2: Convert the `.xlsx` file to a Google Sheet
+                file_metadata = {'name': 'Converted Spreadsheet', 'mimeType': 'application/vnd.google-apps.spreadsheet'}
+                converted_file = drive_service.files().copy(fileId=file_id, body=file_metadata).execute()
+                spreadsheet_id = converted_file.get('id')
+                print(f"Converted to Google Sheet with ID: {spreadsheet_id}")
+
+                # Step 3: Open the Google Sheet and append a new row
+                spreadsheet = gspread_client.open_by_key(spreadsheet_id)
+                sheet = spreadsheet.sheet1  # Open the first worksheet
+                # print(1)
+                
+                points_value = serializer.data.get('points', 0)
+                try:
+                    points_value = int(points_value)
+                except ValueError:
+                    points_value = ''  # Default to 0 if the conversion fails
+                    
+                date = serializer.data.get('date', ''),
+                new_date = ''
+                if isinstance(date, tuple):
+                    date = date[0]  # Get the first element of the tuple, which is the date string
+                
+                # Now check if date is not empty
+                if date != '':
+                    print(date)  # This should print '2024-10-31' as a string
+                    
+                    # Format the date
+                    new_date = date[5:7] + '/' + date[8:10] + '/' + date[0:4]
+                
+                # Create the new_row
+                new_row = [
+                    new_date,
+                    serializer.data.get('active_name', ''),
+                    serializer.data.get('professional', ''),
+                    serializer.data.get('brotherhood', ''),
+                    serializer.data.get('initial', ''),
+                    points_value,
+                ]            
+                                # print(1)
+                
+                sheet.append_row(new_row)
+                print(f"Appended new row: {new_row}")
+
+                # Step 4: Export Google Sheet content and re-upload to Drive
+                print("Exporting Google Sheet to .xlsx format...")
+                request = drive_service.files().export_media(
+                    fileId=spreadsheet_id,
+                    mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
+                file_stream = BytesIO()
+                downloader = MediaIoBaseDownload(file_stream, request)
+                done = False
+                while not done:
+                    status, done = downloader.next_chunk()
+                    print(f"Export progress: {int(status.progress() * 100)}%")
+                file_stream.seek(0)  # Reset stream pointer to the beginning
+
+                # Step 5: Upload the `.xlsx` file back to Google Drive
+                print("Uploading exported .xlsx back to Google Drive...")
+                upload_metadata = {'name': MERIT_FILE_NAME}  # Keep the same name
+                media = MediaIoBaseUpload(file_stream, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                updated_file = drive_service.files().update(fileId=file_id, media_body=media, fields='id, name').execute()
+                print(f"Updated file in Google Drive with ID: {updated_file['id']}")
+
+                return Response({"message": "Merit sheet processed and uploaded successfully.", "uploaded_file": updated_file})
+
+            except Exception as e:
+                return Response({"error": f"Unexpected error: {str(e)}"}, status=500)
+
         return Response(serializer.errors, status=400)
+
 
 def get_credentials():
     """Authenticate and return credentials."""

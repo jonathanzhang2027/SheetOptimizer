@@ -1,1 +1,2 @@
 .env
+backend/credentials/service_account.json
