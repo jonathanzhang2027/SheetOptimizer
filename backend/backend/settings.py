@@ -59,7 +59,10 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
 ]
 MIDDLEWARE.insert(0, 'corsheaders.middleware.CorsMiddleware')
-CORS_ORIGIN_ALLOW_ALL = True  # Or specify your React frontend URL
+CORS_ALLOWED_ORIGINS = [
+    'https://sheet-optimizer-19.vercel.app/',  # Add your frontend URL here
+]
+
 
 ROOT_URLCONF = "backend.urls"
 

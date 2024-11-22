@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'; // Import useNavigate
 const Login = () => {
   const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID; // Access the Client ID from .env
   const navigate = useNavigate();
-
+  const apiUrl = process.env.REACT_APP_API_URL;
   const handleLoginSuccess = async (response) => {
     console.log('Google Login Success:', response);
     // console.log('Google Login Success Response:', response); // Debugging
