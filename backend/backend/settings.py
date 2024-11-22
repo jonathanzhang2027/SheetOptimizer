@@ -60,7 +60,7 @@ MIDDLEWARE = [
 ]
 MIDDLEWARE.insert(0, 'corsheaders.middleware.CorsMiddleware')
 CORS_ALLOWED_ORIGINS = [
-    'https://sheet-optimizer-19.vercel.app/',  # Add your frontend URL here
+    'https://sheet-optimizer-19.vercel.app',  # Add your frontend URL here
 ]
 
 
