@@ -6,10 +6,7 @@ class SignatureSerializer(serializers.ModelSerializer):
         model = Signature
         fields = '__all__'
 
-
 class MeritSheetSerializer(serializers.ModelSerializer):
-    # date = serializers.DateField(input_formats=['%m/%d/%Y'], required=True)  # Accept MM/DD/YYYY
-
     class Meta:
         model = MeritSheet
         fields = '__all__'

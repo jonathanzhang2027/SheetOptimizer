@@ -1,20 +1,17 @@
-import React, { useState  } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import DynamicDropdown from './DynamicDropdown';
 
 const SignatureAndMeritForm = () => {
   const [signatureForm, setSignatureForm] = useState({ name: '', signature: '' });
   const [meritForm, setMeritForm] = useState({
-    date: '',
     active_name: '',
     professional: '',
     brotherhood: '',
     initial: '',
     points: '',
   });
-  
-
-  const names = process.env.REACT_APP_NAMES ? process.env.REACT_APP_NAMES.split(',') : [];
+  const names = ['Amber Yeh', 'Jane', 'Alex', 'Alice'];
 
   // Get token from localStorage
   const getAuthHeader = () => {
@@ -55,7 +52,7 @@ const SignatureAndMeritForm = () => {
   return (
     <div>
       <h1>Signature and Merit Forms</h1>
-      
+
       {/* Signature Form */}
       <form onSubmit={handleSignatureSubmit}>
         <h2>Signature</h2>
@@ -75,16 +72,9 @@ const SignatureAndMeritForm = () => {
       {/* Merit Form */}
       <form onSubmit={handleMeritSubmit}>
         <h2>Merit</h2>
-        
         <DynamicDropdown
           options={names}
           onChange={(value) => setMeritForm({ ...meritForm, active_name: value })}
-        />
-        {/* Date Input */}
-        <input
-          type="date"
-          value={meritForm.date}
-          onChange={(e) => setMeritForm({ ...meritForm, date: e.target.value })}
         />
         <input
           type="text"
@@ -105,13 +95,11 @@ const SignatureAndMeritForm = () => {
           onChange={(e) => setMeritForm({ ...meritForm, initial: e.target.value })}
         />
         <input
-          type="number"
+          type="text"
           placeholder="Points"
           value={meritForm.points}
           onChange={(e) => setMeritForm({ ...meritForm, points: e.target.value })}
         />
-
-        
         <button type="submit">Submit Merit</button>
       </form>
     </div>

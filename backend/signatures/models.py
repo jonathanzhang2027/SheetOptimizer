@@ -6,13 +6,10 @@ class Signature(models.Model):
     signature = models.CharField(max_length=255)
 
 class MeritSheet(models.Model):
-    date = models.DateField(null=True, blank=True)
-    active_name = models.CharField(max_length=100, default='', blank=True)
-    professional = models.CharField(max_length=100, default='', blank=True)
-    brotherhood = models.CharField(max_length=100, default='', blank=True)
-    initial = models.CharField(max_length=100, default='', blank=True)
-    points = models.CharField(max_length=100, default='', blank=True)
-
-    def __str__(self):
-        return self.active_name
+    date = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    active_name = models.CharField(max_length=255, null=True, blank=True)
+    professional = models.CharField(max_length=255, null=True, blank=True)
+    brotherhood = models.CharField(max_length=255, null=True, blank=True)
+    initial = models.CharField(max_length=255, null=True, blank=True)
+    points = models.CharField(max_length=255, null=True, blank=True)
 
