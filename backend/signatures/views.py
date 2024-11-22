@@ -11,15 +11,23 @@ from django.contrib.auth.models import User
 import os
 from decouple import config
 from django.conf import settings
-
+import base64
+from google.oauth2 import service_account
+import json
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-SERVICE_ACCOUNT_FILE = os.path.join(settings.BASE_DIR, 'credentials', 'service_account.json')
+# SERVICE_ACCOUNT_FILE = os.path.join(settings.BASE_DIR, 'credentials', 'service_account.json')
 
 GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID')
 SIGNATURE_FILE_NAME = config('SIGNATURE_FILE_NAME')
 MERIT_FILE_NAME = config('MERIT_FILE_NAME')
 
+service_account_json = base64.b64decode(os.getenv('GOOGLE_SERVICE_ACCOUNT')).decode('utf-8')
 
+# Convert the decoded JSON to a dictionary
+service_account_info = json.loads(service_account_json)
+
+# Use the credentials to authenticate with Google Cloud services
+credentials = service_account.Credentials.from_service_account_info(service_account_info)
 
 # List of allowed emails
 ALLOWED_EMAILS = config('ALLOWED_EMAILS', cast=lambda v: [s.strip() for s in v.split(',')])
@@ -71,7 +79,7 @@ class SignatureView(APIView):
             try:
                 # Load credentials and initialize clients
                 # print(1)
-                credentials = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+                # credentials = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
                 # print(1)
                 drive_service = build('drive', 'v3', credentials=credentials)
                 # print(1)
@@ -150,7 +158,7 @@ class SignatureView(APIView):
 
         return Response(serializer.errors, status=400)
 
-    
+from googleapiclient.discovery import build
 class MeritSheetView(APIView):
     def post(self, request):
         serializer = MeritSheetSerializer(data=request.data)
@@ -161,7 +169,7 @@ class MeritSheetView(APIView):
 
             try:
                 # Load credentials and initialize clients
-                credentials = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+                # credentials = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
                 drive_service = build('drive', 'v3', credentials=credentials)
                 gspread_client = gspread.authorize(credentials)
 
@@ -248,101 +256,3 @@ class MeritSheetView(APIView):
 
         return Response(serializer.errors, status=400)
 
-
-def get_credentials():
-    """Authenticate and return credentials."""
-    return Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-
-from rest_framework.exceptions import APIException
-from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
-from googleapiclient.discovery import build
-import pandas as pd
-
-class ProcessDriveFolderView(APIView):
-    def post(self, request):
-        try:
-            # Step 1: Get Folder ID and Fields from the request
-            folder_id = request.data.get("folder_id")
-            signature_data = request.data.get("signature_data")  # {'name': 'Person', 'signature': 'Jonathan'}
-            merit_data = request.data.get("merit_data")  # {'date': '...', 'fields': [...]}
-
-            if not folder_id:
-                raise APIException("Folder ID is required.")
-
-            credentials = get_credentials()
-            drive_service = build('drive', 'v3', credentials=credentials)
-
-            # Step 2: List all `.xlsx` files in the folder
-            query = f"'{folder_id}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'"
-            results = drive_service.files().list(q=query, fields="files(id, name)").execute()
-            files = results.get('files', [])
-
-            if not files:
-                return Response({"message": "No Excel files found in the folder."})
-
-            modified_files = []
-
-            for file in files:
-                file_id = file['id']
-                file_name = file['name']
-
-                # Step 3: Download the file
-                request = drive_service.files().get_media(fileId=file_id)
-                local_path = os.path.join(settings.BASE_DIR, f'temp_{file_name}')
-                with open(local_path, 'wb') as local_file:
-                    downloader = MediaIoBaseDownload(local_file, request)
-                    done = False
-                    while not done:
-                        status, done = downloader.next_chunk()
-
-                # Step 4: Process the file
-                if "Signature Sheet" in file_name:
-                    self.update_signature_sheet(local_path, signature_data)
-                elif "Merit Sheet" in file_name:
-                    self.update_merit_sheet(local_path, merit_data)
-
-                # Step 5: Upload the modified file back to Google Drive
-                modified_file_metadata = {'name': f'Modified_{file_name}'}
-                media = MediaFileUpload(local_path, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-                uploaded_file = drive_service.files().create(
-                    body=modified_file_metadata, media_body=media, fields='id, name'
-                ).execute()
-
-                modified_files.append(uploaded_file)
-
-                # Cleanup local file
-                os.remove(local_path)
-
-            return Response({"message": "Files processed successfully!", "modified_files": modified_files})
-
-        except Exception as e:
-            raise APIException(f"An error occurred: {str(e)}")
-
-    def update_signature_sheet(self, file_path, data):
-        """Update the signature sheet."""
-        df = pd.read_excel(file_path)
-
-        # Find the corresponding person and update their signature
-        for person in data['names']:
-            df.loc[df['Name'] == person, 'Signature'] = data['signature']
-
-        # Save the updated file
-        df.to_excel(file_path, index=False)
-
-    def update_merit_sheet(self, file_path, data):
-        """Update the merit sheet by adding a row."""
-        df = pd.read_excel(file_path)
-
-        # Append the new row to the merit sheet
-        new_row = {
-            'Date': data['date'],
-            'Active Name': data['fields'][0],
-            'Professional': data['fields'][1],
-            'Brotherhood': data['fields'][2],
-            'Initial': data['fields'][3],
-            'Points': data['fields'][4],
-        }
-        df = df.append(new_row, ignore_index=True)
-
-        # Save the updated file
-        df.to_excel(file_path, index=False)
