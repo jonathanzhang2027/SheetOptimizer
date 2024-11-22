@@ -147,7 +147,7 @@ LOGOUT_REDIRECT_URL = '/'
 
 GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = config('GOOGLE_CLIENT_SECRET')
-GOOGLE_REDIRECT_URI = "http://127.0.0.1:8000/api/oauth2callback/"
+GOOGLE_REDIRECT_URI = "https://sheet-optimizer-19.vercel.app/api/oauth2callback/"
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # REST_FRAMEWORK = {
